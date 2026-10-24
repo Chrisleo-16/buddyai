@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { fitWithin, toGray } from './frames.js';
+
+export const MAX_EDGE = 640;
+export const JPEG_QUALITY = 0.7;
 
 export function useCamera() {
   const videoRef = useRef(null);
@@ -14,15 +18,21 @@ export function useCamera() {
     } catch { setState('error'); }
   }, []);
   useEffect(() => { start(); return () => streamRef.current?.getTracks().forEach((t) => t.stop()); }, [start]);
-  /** Grab a downscaled JPEG frame (kept in memory only). */
+  /** Grab a frame downscaled to <=640px JPEG q0.7 (kept in memory only) plus a 32px grayscale thumb for change detection. */
   const capture = useCallback(() => new Promise((resolve) => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return resolve(null);
-    const scale = Math.min(1, 768 / v.videoWidth);
+    const { width, height } = fitWithin(v.videoWidth, v.videoHeight, MAX_EDGE);
     const c = document.createElement('canvas');
-    c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
-    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-    c.toBlob((b) => resolve(b), 'image/jpeg', 0.8);
+    c.width = width; c.height = height;
+    c.getContext('2d').drawImage(v, 0, 0, width, height);
+    const tc = document.createElement('canvas');
+    const tw = fitWithin(width, height, 32);
+    tc.width = tw.width; tc.height = tw.height;
+    const tctx = tc.getContext('2d');
+    tctx.drawImage(c, 0, 0, tw.width, tw.height);
+    const thumb = toGray(tctx.getImageData(0, 0, tw.width, tw.height).data);
+    c.toBlob((blob) => resolve(blob ? { blob, thumb } : null), 'image/jpeg', JPEG_QUALITY);
   }), []);
   return { videoRef, state, start, capture };
 }

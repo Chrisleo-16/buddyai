@@ -3,6 +3,10 @@ import multer from 'multer';
 import { z } from 'zod';
 import { Protocol, Session, User } from '../models/index.js';
 import { checkFrame, coachingNote } from '../services/gemma.js';
+import { createInFlightGuard } from '../services/inflight.js';
+
+const checkGuard = createInFlightGuard();
+const isDemo = (req) => req.get('x-buddy-demo') === '1' || req.body?.demo === '1' || req.body?.demo === true;
 import { computeRisk, trainingScore } from '../services/risk.js';
 import { alertSupervisor } from '../services/sms.js';
 import { emitToSession } from '../socket.js';
@@ -52,16 +56,20 @@ r.post('/:id/check', upload.single('frame'), async (req, res) => {
   const order = Number(req.body.step || s.currentStep);
   const step = protocol.steps.find((x) => x.order === order);
   if (!step) return res.status(400).json({ error: 'bad_step' });
+  // Single in-flight check per session: no overlapping Gemma calls.
+  if (!checkGuard.tryAcquire(s.id)) return res.status(429).json({ error: 'check_in_flight', message: 'A check is already running for this session.' });
   emitToSession(s.id, 'buddy:checking', { step: order });
   const image = { buffer: req.file.buffer, mimeType: req.file.mimetype || 'image/jpeg' };
   let detection; let payload;
   try {
-    const { data, meta } = await checkFrame({ protocol, step, image });
+    const { data, meta } = await checkFrame({ protocol, step, image, demoMode: isDemo(req) });
     detection = { ...meta, ok: true, stepOk: data.step_ok, items: data.items, riskFlags: data.risk_flags, feedbackEn: data.feedback_en, feedbackSw: data.feedback_sw };
     payload = { ok: true, step: order, result: data, meta };
   } catch (e) {
     detection = { ...(e.meta || {}), ok: false, error: e.message.slice(0, 300) };
     payload = { ok: false, step: order, error: 'buddy_unavailable', message: 'Buddy could not check this frame. You can continue manually with your human observer.', meta: e.meta };
+  } finally {
+    checkGuard.release(s.id);
   }
   req.file.buffer = null; // drop the image
   const ss = s.steps.find((x) => x.order === order);
@@ -109,7 +117,7 @@ r.post('/:id/finish', async (req, res) => {
   if (s.mode === 'training') s.trainingScore = trainingScore(risk);
   let coachingMeta = null;
   try {
-    const { data, meta } = await coachingNote({ session: s, protocol, risk });
+    const { data, meta } = await coachingNote({ session: s, protocol, risk, demoMode: isDemo(req) });
     s.coachingNote = { en: data.coaching_en, sw: data.coaching_sw };
     coachingMeta = meta;
   } catch (e) {

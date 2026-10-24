@@ -7,6 +7,10 @@ import { useT } from '../i18n/index.js';
 import { usePrefs } from '../store/auth.js';
 import { useCamera, speak } from '../lib/useCamera.js';
 import { getSocket } from '../lib/socket.js';
+import { createInFlight, frameDiff, DIFF_THRESHOLD, adaptiveIntervalMs, softTimeout } from '../lib/frames.js';
+
+const SOFT_TIMEOUT_MS = 20_000;
+const SLOW = Symbol('slow');
 import Checklist, { mergeItems } from '../components/Checklist.jsx';
 import { Card, Badge, Modal, Toggle, Skeleton, ErrorState, ICON } from '../components/ui.jsx';
 
@@ -47,7 +51,10 @@ export default function LiveCoach() {
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState(false);
   const elapsed = useElapsed(checking);
-  const inflight = useRef(false);
+  const inflight = useRef(createInFlight());
+  const lastThumb = useRef(null);
+  const lastLatency = useRef(0);
+  const [slow, setSlow] = useState(false); // a check passed the soft timeout and is finishing in the background
 
   const order = session?.currentStep || 1;
   const step = protocol?.steps.find((s) => s.order === order);
@@ -60,39 +67,56 @@ export default function LiveCoach() {
   useEffect(() => {
     const s = getSocket();
     s.emit('session:join', id);
-    const onFb = (p) => setFeedback(p);
+    const onFb = (p) => { setFeedback(p); setSlow(false); if (p?.meta?.latencyMs) lastLatency.current = p.meta.latencyMs; };
     s.on('buddy:feedback', onFb);
     return () => { s.off('buddy:feedback', onFb); s.emit('session:leave', id); };
   }, [id]);
 
-  useEffect(() => { setFeedback(null); }, [order]);
+  useEffect(() => { setFeedback(null); lastThumb.current = null; }, [order]);
 
   const fbText = feedback?.ok ? (t.lang === 'sw' ? feedback.result.feedback_sw : feedback.result.feedback_en) : feedback ? t('coach.unavailable') : null;
   useEffect(() => { if (fbText && prefs.voice) speak(fbText, t.lang); }, [fbText]); // eslint-disable-line
   useEffect(() => { if (step && prefs.voice) speak(`${t('coach.step')} ${step.order}. ${t.pick(step.title)}. ${t.pick(step.instruction)}`, t.lang); }, [step?.order]); // eslint-disable-line
 
-  const check = useCallback(async () => {
-    if (inflight.current || !session || session.status !== 'active') return;
-    const blob = await cam.capture();
-    if (!blob) return;
-    inflight.current = true; setChecking(true);
-    try {
+  /** auto=true: skip if the frame barely changed. One in-flight check per session; >20s keeps running in the background. */
+  const check = useCallback(async (auto = false) => {
+    if (inflight.current.busy || !session || session.status !== 'active') return;
+    const frame = await cam.capture();
+    if (!frame) return;
+    if (auto === true && lastThumb.current && frameDiff(frame.thumb, lastThumb.current) < DIFF_THRESHOLD) return;
+    lastThumb.current = frame.thumb;
+    const run = inflight.current.run(async () => {
       const form = new FormData();
-      form.append('frame', blob, 'frame.jpg');
+      form.append('frame', frame.blob, 'frame.jpg');
       form.append('step', String(order));
-      const r = await api(`/sessions/${id}/check`, { method: 'POST', form });
-      setFeedback(r);
-      qc.invalidateQueries({ queryKey: ['session', id] });
-    } catch (e) {
-      setFeedback({ ok: false, step: order, error: e.message });
-    } finally { inflight.current = false; setChecking(false); }
+      const t0 = Date.now();
+      try {
+        const r = await api(`/sessions/${id}/check`, { method: 'POST', form });
+        lastLatency.current = r.meta?.latencyMs || Date.now() - t0;
+        setFeedback(r); setSlow(false);
+        qc.invalidateQueries({ queryKey: ['session', id] });
+      } catch (e) {
+        if (e.status !== 429) setFeedback({ ok: false, step: order, error: e.message });
+      }
+    });
+    if (!run) return;
+    setChecking(true);
+    const res = await softTimeout(run, SOFT_TIMEOUT_MS, SLOW);
+    setChecking(false);
+    if (res === SLOW) setSlow(true); // worker keeps going; result lands via socket / when the request resolves
   }, [cam, session, order, id, qc]);
 
+  // Adaptive auto-check: next check is scheduled only after the previous one, spaced by measured latency.
   useEffect(() => {
     if (!prefs.autoCheck || cam.state !== 'on' || verified) return;
-    const i = setInterval(check, Math.max(5, prefs.intervalSec) * 1000);
-    const first = setTimeout(check, 1500);
-    return () => { clearInterval(i); clearTimeout(first); };
+    let alive = true; let timer;
+    const loop = async () => {
+      if (!alive) return;
+      await check(true);
+      if (alive) timer = setTimeout(loop, adaptiveIntervalMs(prefs.intervalSec, lastLatency.current));
+    };
+    timer = setTimeout(loop, 1500);
+    return () => { alive = false; clearTimeout(timer); };
   }, [prefs.autoCheck, prefs.intervalSec, cam.state, verified, check]);
 
   async function advance(override = false) {
@@ -124,6 +148,7 @@ export default function LiveCoach() {
           <div className="flex items-center gap-2 text-sm text-ink-muted">
             {session.kind === 'doffing' ? <ShieldAlert {...ICON} /> : <Info {...ICON} />}{t.pick(protocol.title)}
             <Badge tone={session.mode === 'training' ? 'neutral' : 'ok'}>{session.mode === 'training' ? t('coach.practice') : t('coach.live')}</Badge>
+            {(prefs.demoMode || feedback?.meta?.demo) && <Badge tone="warn" data-testid="demo-badge">{t('demo.badge')}</Badge>}
           </div>
           <h1 className="mt-1 text-xl font-medium tracking-tight">{t('coach.step')} {order} <span className="text-ink-subtle">{t('coach.of')} {protocol.steps.length}</span></h1>
         </div>
@@ -156,15 +181,17 @@ export default function LiveCoach() {
         </div>
 
         <div className="space-y-4 lg:col-span-2">
-          <Card icon={Sparkles} title={t('coach.buddy')} action={feedback?.meta?.latencyMs ? <span className="text-xs tabular-nums text-ink-subtle">{(feedback.meta.latencyMs / 1000).toFixed(1)}{t('common.seconds')} · {feedback.meta.model}</span> : null}>
+          <Card icon={Sparkles} title={t('coach.buddy')} action={feedback?.meta?.latencyMs ? <span className="text-xs tabular-nums text-ink-subtle">{(feedback.meta.latencyMs / 1000).toFixed(1)}{t('common.seconds')} · {feedback.meta.demo ? t('demo.scripted') : feedback.meta.model}</span> : null}>
             <div aria-live="polite" className="min-h-[96px]">
+              {slow && <p role="status" className="mb-3 flex items-center gap-2 text-xs text-ink-muted"><Loader2 size={12} strokeWidth={1.5} className="animate-spin" />{t('coach.slowBg')}</p>}
               {checking && !feedback ? (
                 <div className="space-y-2"><p className="flex items-center gap-2 text-base font-medium"><Loader2 {...ICON} className="animate-spin text-ink-muted" />{t('coach.checking')}</p><p className="text-sm text-ink-muted">{t('coach.checkingSlow')}</p><Skeleton className="mt-3 h-3 w-4/5" /><Skeleton className="h-3 w-3/5" /></div>
               ) : feedback ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">{feedback.ok ? (feedback.result.step_ok ? <Badge tone="ok" icon={CheckCircle2}>{t('coach.verified')}</Badge> : <Badge tone="warn" icon={CircleDashed}>{t('coach.notVerified')}</Badge>) : <Badge tone="danger">{t('coach.unavailable').split('.')[0]}</Badge>}
-                    {checking && <span className="flex items-center gap-1 text-xs text-ink-muted"><Loader2 size={12} strokeWidth={1.5} className="animate-spin" />{t('coach.checking')}</span>}</div>
+                    {(checking || slow) && <span className="flex items-center gap-1 text-xs text-ink-muted"><Loader2 size={12} strokeWidth={1.5} className="animate-spin" />{t('coach.checking')}</span>}</div>
                   <p className="text-md leading-relaxed" data-testid="buddy-feedback">{fbText}</p>
+                  {feedback.meta?.demo && <p className="text-xs text-ink-subtle">{t('demo.note')}</p>}
                   {feedback.ok && feedback.result.risk_flags?.length > 0 && <div className="flex flex-wrap gap-1">{feedback.result.risk_flags.map((f) => <Badge key={f} tone="danger">{f.replace(/_/g, ' ')}</Badge>)}</div>}
                 </div>
               ) : (
@@ -176,7 +203,7 @@ export default function LiveCoach() {
           <Card icon={ListChecks} title={t('coach.checklist')}><Checklist items={items} /></Card>
 
           <div className="grid grid-cols-2 gap-2">
-            <button className="btn-secondary btn-lg" onClick={check} disabled={checking || cam.state !== 'on'} data-testid="check-now"><ScanEye {...ICON} />{t('coach.checkNow')}</button>
+            <button className="btn-secondary btn-lg" onClick={() => check(false)} disabled={checking || cam.state !== 'on'} data-testid="check-now"><ScanEye {...ICON} />{t('coach.checkNow')}</button>
             <button className="btn-secondary btn-lg" onClick={() => setIssueOpen(true)}><Flag {...ICON} />{t('coach.report')}</button>
             {verified ? (
               <button className="btn-primary btn-lg col-span-2" onClick={() => advance(false)} disabled={busy} data-testid="next">{isLast ? <><FinishIcon {...ICON} />{t('coach.finish')}</> : <>{t('coach.next')}<ArrowRight {...ICON} /></>}</button>

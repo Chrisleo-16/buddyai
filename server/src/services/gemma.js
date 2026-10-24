@@ -3,6 +3,8 @@ import { CheckResult, CoachingResult, parseWith } from './gemmaSchema.js';
 import { checkPrompt, coachingPrompt } from './prompts.js';
 import { withTimeout, retry } from './timing.js';
 import { mockCheck, mockCoaching } from './mockGemma.js';
+import { demoCheck, demoCoaching } from './demoGemma.js';
+import { sleep } from './timing.js';
 
 let genaiClient = null;
 async function gemini() {
@@ -13,7 +15,7 @@ async function gemini() {
   return genaiClient;
 }
 
-async function callGemini({ model, prompt, image, signal }) {
+async function callGemini({ model, prompt, image, signal, live }) {
   const ai = await gemini();
   const parts = [];
   if (image) parts.push({ inlineData: { mimeType: image.mimeType, data: image.buffer.toString('base64') } });
@@ -21,7 +23,11 @@ async function callGemini({ model, prompt, image, signal }) {
   const res = await ai.models.generateContent({
     model,
     contents: [{ role: 'user', parts }],
-    config: { temperature: 0.2, abortSignal: signal },
+    config: {
+      temperature: 0.2,
+      abortSignal: signal,
+      ...(live ? { thinkingConfig: { thinkingLevel: config.gemma.liveThinking }, maxOutputTokens: config.gemma.liveMaxOutputTokens } : {}),
+    },
   });
   return res.text;
 }
@@ -46,6 +52,8 @@ export function providerInfo() {
       : g.provider === 'ollama' ? { vision: g.ollamaModel, text: g.ollamaModel, host: g.ollamaHost } : { vision: 'mock', text: 'mock' },
     keyConfigured: g.provider !== 'gemini' || !!process.env.GEMINI_API_KEY,
     timeoutMs: g.timeoutMs,
+    liveThinking: g.liveThinking,
+    demoMode: config.demoMode,
   };
 }
 
@@ -53,14 +61,18 @@ export function providerInfo() {
  * Run a structured Gemma call: provider dispatch, timeout, retry w/ backoff on 5xx,
  * model fallback (vision<->text) on Gemini, zod validation, and one re-ask on bad JSON.
  */
-async function structured({ kind, prompt, image, schema, mock }) {
+async function structured({ kind, prompt, image, schema, mock, demo, demoMode }) {
   const g = config.gemma;
   const t0 = Date.now();
+  if (demoMode || config.demoMode) {
+    await sleep(config.demoLatencyMs * (0.8 + Math.random() * 0.4));
+    return { data: demo(), meta: { provider: 'demo', model: 'scripted-demo', demo: true, latencyMs: Date.now() - t0, attempts: 1 } };
+  }
   if (g.provider === 'mock') {
     return { data: mock(), meta: { provider: 'mock', model: 'mock', latencyMs: Date.now() - t0, attempts: 1 } };
   }
   const models = g.provider === 'gemini'
-    ? (kind === 'vision' ? [g.visionModel, g.textModel] : [g.textModel, g.visionModel])
+    ? (kind === 'vision' ? [...new Set([g.visionModel, g.fallbackVisionModel])] : [...new Set([g.textModel, g.visionModel])])
     : [g.ollamaModel];
   let attempts = 0;
   let lastErr;
@@ -69,7 +81,7 @@ async function structured({ kind, prompt, image, schema, mock }) {
       const run = (p) => retry(() => {
         attempts++;
         return withTimeout((signal) => (g.provider === 'gemini'
-          ? callGemini({ model, prompt: p, image, signal })
+          ? callGemini({ model, prompt: p, image, signal, live: kind === 'vision' })
           : callOllama({ prompt: p, image, signal })), g.timeoutMs);
       }, { retries: g.retries });
       let text = await run(prompt);
@@ -90,12 +102,12 @@ async function structured({ kind, prompt, image, schema, mock }) {
   throw err;
 }
 
-export async function checkFrame({ protocol, step, image }) {
-  return structured({ kind: 'vision', prompt: checkPrompt({ protocol, step }), image, schema: CheckResult, mock: () => mockCheck(step, image) });
+export async function checkFrame({ protocol, step, image, demoMode = false }) {
+  return structured({ kind: 'vision', prompt: checkPrompt({ protocol, step }), image, schema: CheckResult, mock: () => mockCheck(step, image), demo: () => demoCheck(step, image), demoMode });
 }
 
-export async function coachingNote({ session, protocol, risk }) {
-  return structured({ kind: 'text', prompt: coachingPrompt({ session, protocol, risk }), schema: CoachingResult, mock: () => mockCoaching(risk) });
+export async function coachingNote({ session, protocol, risk, demoMode = false }) {
+  return structured({ kind: 'text', prompt: coachingPrompt({ session, protocol, risk }), schema: CoachingResult, mock: () => mockCoaching(risk), demo: () => demoCoaching(risk), demoMode });
 }
 
 export const _internal = { structured };

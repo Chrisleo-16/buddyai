@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Languages, Volume2, ScanEye, Cpu, Lock, UserRound } from 'lucide-react';
+import { Languages, Volume2, ScanEye, Cpu, Lock, UserRound, Presentation } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useT } from '../i18n/index.js';
 import { useAuth, usePrefs } from '../store/auth.js';
@@ -27,6 +27,9 @@ export default function Settings() {
           <Row title={t('settings.voice')} desc={t('settings.voiceDesc')}><Toggle checked={p.voice} onChange={(v) => p.set({ voice: v })} label={t('settings.voice')} /></Row>
           <Row title={t('settings.auto')} desc={t('settings.autoDesc')}><Toggle checked={p.autoCheck} onChange={(v) => p.set({ autoCheck: v })} label={t('settings.auto')} /></Row>
           <Row title={t('settings.interval')}><Segmented label={t('settings.interval')} value={p.intervalSec} onChange={(v) => p.set({ intervalSec: v })} options={[5, 6, 8].map((n) => ({ value: n, label: `${n}s` }))} /></Row>
+        </Card>
+        <Card icon={Presentation} title={t('demo.title')} action={(p.demoMode || ai?.demoMode) ? <Badge tone="warn">{ai?.demoMode ? t('demo.serverOn') : t('demo.badge')}</Badge> : null}>
+          <Row title={t('demo.title')} desc={t('demo.desc')}><Toggle checked={p.demoMode} onChange={(v) => p.set({ demoMode: v })} label={t('demo.title')} /></Row>
         </Card>
         <Card icon={Cpu} title={t('settings.ai')} action={h.isLoading ? null : <Badge tone={h.isError ? 'danger' : 'ok'}>{h.isError ? t('settings.offline') : t('settings.online')}</Badge>}>
           <p className="mb-4 text-sm text-ink-muted">{t('settings.aiDesc')}</p>

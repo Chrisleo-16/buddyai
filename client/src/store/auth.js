@@ -8,7 +8,7 @@ export const useAuth = create(persist((set) => ({
 }), { name: 'buddyai-auth' }));
 
 export const usePrefs = create(persist((set) => ({
-  lang: 'en', voice: true, autoCheck: true, intervalSec: 6,
+  lang: 'en', voice: true, autoCheck: true, intervalSec: 6, demoMode: false,
   setLang: (lang) => set({ lang }),
   set: (patch) => set(patch),
 }), { name: 'buddyai-prefs' }));

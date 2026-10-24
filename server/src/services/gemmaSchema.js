@@ -8,13 +8,22 @@ export const DetectionItem = z.object({
   confidence: z.coerce.number().min(0).max(1).catch(0.5),
 });
 
-export const CheckResult = z.object({
+/** Expand the compact live-check shape ({i,s,en,sw,f}) into the full CheckResult shape. */
+export function expandCompact(raw) {
+  if (!raw || typeof raw !== 'object' || 'step_ok' in raw || !('s' in raw)) return raw;
+  return {
+    items: (raw.i || []).map((it) => ({ name: it.n, present: it.p ?? true, correct: !!it.ok, issue: it.x || '', confidence: it.c ?? 0.8 })),
+    step_ok: raw.s, feedback_en: raw.en, feedback_sw: raw.sw, risk_flags: raw.f || [],
+  };
+}
+
+export const CheckResult = z.preprocess(expandCompact, z.object({
   items: z.array(DetectionItem).default([]),
   step_ok: z.boolean(),
   feedback_en: z.string().min(1),
   feedback_sw: z.string().min(1),
   risk_flags: z.array(z.string()).default([]),
-});
+}));
 
 export const CoachingResult = z.object({
   coaching_en: z.string().min(1),

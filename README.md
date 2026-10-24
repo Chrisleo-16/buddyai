@@ -137,6 +137,8 @@ docker compose up --build
 | `GEMINI_API_KEY` | Gemini API key |
 | `GEMMA_VISION_MODEL` / `GEMMA_TEXT_MODEL` | Model overrides |
 | `GEMMA_TIMEOUT_MS` / `GEMMA_RETRIES` | Per-call timeout and retries |
+| `GEMMA_LIVE_THINKING` / `GEMMA_LIVE_MAX_TOKENS` | Live checks run with thinking `minimal` (off) and a 320-token cap |
+| `DEMO_MODE` | `true` = scripted ~1.5 s responses, labelled "Demo mode" in the UI (also a toggle in Settings) |
 | `OLLAMA_HOST` / `OLLAMA_MODEL` | Ollama settings |
 | `AT_SMS_ENABLED`, `AT_USERNAME`, `AT_API_KEY`, `AT_SUPERVISOR_PHONE`, `AT_RISK_THRESHOLD` | Optional Africa's Talking alerts |
 
@@ -198,3 +200,7 @@ Run `npm test` before you open a PR, and never commit `.env*` files.
 ## License
 
 [Apache 2.0](LICENSE) © 2026 Chrisben Evans Leo and contributors. Built for MLH Hacktoberfest Hack Day Nairobi.
+
+## Live-check latency
+
+Live checks use `gemma-4-26b-a4b-it` with thinking set to `minimal`, a compact per-step prompt and JSON shape (`{i,s,en,sw,f}`, expanded server-side), and `maxOutputTokens: 320`. The client sends 640px JPEG frames at quality 0.7, skips auto-checks when the frame barely changed, runs one check at a time per session, and spaces auto-checks by the measured latency. After 20 s the coach keeps the last result on screen and the check finishes in the background. Measure it with `node server/scripts/bench.js --img docs/test-images/ppe-check.jpg --model gemma-4-26b-a4b-it --prompt compact --thinking minimal --max 320 --runs 5`.

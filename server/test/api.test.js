@@ -65,3 +65,18 @@ describe('session flow (mock Gemma)', () => {
     expect(JSON.stringify(fin.body.session)).not.toMatch(/base64|buffer/i);
   });
 });
+
+describe('demo mode + in-flight guard', () => {
+  it('labels demo responses and rejects overlapping checks with 429', async () => {
+    const auth = { Authorization: `Bearer ${await login(app)}` };
+    const start = await request(app).post('/api/sessions').set(auth).send({ protocolKey: 'doffing-papr', mode: 'training' });
+    const id = start.body.session._id;
+    const send = () => request(app).post(`/api/sessions/${id}/check`).set(auth).set('X-Buddy-Demo', '1').attach('frame', Buffer.alloc(100), { filename: 'f.jpg', contentType: 'image/jpeg' });
+    const [a, b] = await Promise.all([send(), send()]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 429]);
+    const ok = a.status === 200 ? a : b;
+    expect(ok.body.meta).toMatchObject({ provider: 'demo', demo: true });
+    expect(ok.body.meta.latencyMs).toBeGreaterThan(1000);
+  }, 10000);
+});

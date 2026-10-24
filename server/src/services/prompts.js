@@ -1,4 +1,4 @@
-export function checkPrompt({ protocol, step }) {
+export function checkPromptVerbose({ protocol, step }) {
   return `You are "Buddy", a calm trained-observer assistant for healthcare workers ${protocol.kind === 'doffing' ? 'REMOVING (doffing)' : 'PUTTING ON (donning)'} Ebola/VHF-level PPE, following the CDC PAPR-option protocol.
 This is a training and decision-support tool, not a medical device. Be conservative: if you cannot see something clearly, mark it not present / low confidence and say so.
 
@@ -26,4 +26,13 @@ Computed risk score: ${risk.score}/100 (${risk.level}). Reasons: ${risk.reasons.
 Steps:
 ${lines}
 Reply with ONLY JSON: {"coaching_en":"<3-4 sentences: what went well, the most important correction, one tip for next time>","coaching_sw":"<the same in natural Kiswahili>"}`;
+}
+
+/** Compact live-check prompt: only the current step's items, tiny JSON shape (keeps output tokens low). */
+export function checkPrompt({ protocol, step }) {
+  const items = step.expectedItems.length ? step.expectedItems.join(', ') : 'none (judge the scene/posture)';
+  return `PPE trained-observer check (${protocol.kind}, CDC PAPR protocol). Step ${step.order}: ${step.title.en}. ${step.instruction.en}
+Check only: ${items}. If unclear, mark not ok.
+Reply ONLY with JSON: {"i":[{"n":"item","ok":true,"x":"issue or empty"}],"s":true,"en":"one calm coaching sentence","sw":"same in Kiswahili","f":["risk flags e.g. exposed_skin, glove_tear, visible_contamination; empty if none"]}
+s = step done correctly and safely.`;
 }
