@@ -106,7 +106,7 @@ export default function LiveCoach() {
   }
   async function finish() {
     setBusy(true);
-    try { await api(`/sessions/${id}/finish`, { method: 'POST' }); qc.invalidateQueries({ queryKey: ['sessions'] }); nav(`/sessions/${id}`); } finally { setBusy(false); }
+    try { await api(`/sessions/${id}/finish`, { method: 'POST' }); qc.invalidateQueries({ queryKey: ['sessions'] }); qc.removeQueries({ queryKey: ['session', id] }); nav(`/sessions/${id}`); } finally { setBusy(false); }
   }
   async function report() {
     await api(`/sessions/${id}/issue`, { method: 'POST', body: { order, note } });
