@@ -72,7 +72,7 @@ async function structured({ kind, prompt, image, schema, mock, demo, demoMode })
     return { data: mock(), meta: { provider: 'mock', model: 'mock', latencyMs: Date.now() - t0, attempts: 1 } };
   }
   const models = g.provider === 'gemini'
-    ? (kind === 'vision' ? [...new Set([g.visionModel, g.fallbackVisionModel])] : [...new Set([g.textModel, g.visionModel])])
+    ? (kind === 'vision' ? [...new Set([g.visionModel, g.fallbackVisionModel])] : [...new Set([g.textModel, g.fallbackVisionModel])])
     : [g.ollamaModel];
   let attempts = 0;
   let lastErr;

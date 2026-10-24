@@ -12,8 +12,8 @@ export const config = {
     // Live checks: the 26B MoE (4B active) is far faster and steadier than 31B on the Gemini API.
     visionModel: process.env.GEMMA_VISION_MODEL || 'gemma-4-26b-a4b-it',
     fallbackVisionModel: process.env.GEMMA_FALLBACK_VISION_MODEL || 'gemma-4-31b-it',
-    // End-of-session coaching summary (text only, not latency critical).
-    textModel: process.env.GEMMA_TEXT_MODEL || 'gemma-4-31b-it',
+    // End-of-session coaching summary. 31B timed out / 500'd on every run in testing (2026-10-24), so 26B is the default; 31B is the fallback.
+    textModel: process.env.GEMMA_TEXT_MODEL || 'gemma-4-26b-a4b-it',
     // Gemma 4 thinking is on/off: 'minimal' = off, 'high' = on.
     liveThinking: process.env.GEMMA_LIVE_THINKING || 'minimal',
     liveMaxOutputTokens: Number(process.env.GEMMA_LIVE_MAX_TOKENS || 320),
