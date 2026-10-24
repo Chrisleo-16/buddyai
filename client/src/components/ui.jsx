@@ -83,7 +83,7 @@ export function Toggle({ checked, onChange, label }) {
 
 export function Segmented({ value, onChange, options, label }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex h-8 items-center gap-0.5 rounded-btn border border-paper-line bg-paper-sunken p-0.5">
+    <div role="radiogroup" aria-label={label} className="inline-flex h-11 md:h-8 items-center gap-0.5 rounded-btn border border-paper-line bg-paper-sunken p-0.5">
       {options.map((o) => (
         <button key={o.value} role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
           className={`h-full rounded-nav px-3 text-sm font-medium transition-colors ${value === o.value ? 'bg-paper-raised text-ink shadow-card' : 'text-ink-muted hover:text-ink'}`}>
@@ -122,7 +122,7 @@ export function Stat({ label, value, sub, icon: Icon }) {
 export function PageHeader({ title, subtitle, actions }) {
   return (
     <div className="mb-8 flex flex-wrap items-end gap-4">
-      <div className="flex-1"><h1 className="text-xl font-medium tracking-tight">{title}</h1>{subtitle && <p className="mt-1 text-base text-ink-muted">{subtitle}</p>}</div>
+      <div className="flex-1"><h1 className="text-lg font-medium tracking-tight sm:text-xl">{title}</h1>{subtitle && <p className="mt-1 text-base text-ink-muted">{subtitle}</p>}</div>
       {actions}
     </div>
   );

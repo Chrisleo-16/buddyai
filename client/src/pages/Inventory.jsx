@@ -26,7 +26,7 @@ export default function Inventory() {
     <div>
       <PageHeader title={t('inv.title')} subtitle={t('inv.subtitle')} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-xs"><Search {...ICON} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" /><input className="input pl-9" placeholder={t('inv.search')} value={term} onChange={(e) => setTerm(e.target.value)} /></div>
+        <div className="relative w-full sm:max-w-xs"><Search {...ICON} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" /><input className="input pl-9" placeholder={t('inv.search')} value={term} onChange={(e) => setTerm(e.target.value)} /></div>
         <Segmented label="Unit" value={unit} onChange={setUnit} options={[{ value: 'all', label: t('inv.all') }, ...units.map((u) => ({ value: u, label: u }))]} />
       </div>
       <Card icon={Package} title={`${rows.length} ${t('inv.item').toLowerCase()}`} bodyClass="p-0 overflow-x-auto">
@@ -43,7 +43,7 @@ export default function Inventory() {
                   <td className={`td text-right tabular-nums ${low ? 'text-danger' : ''}`}>{i.quantity}</td>
                   <td className="td text-right tabular-nums text-ink-muted">{i.reorderLevel}</td>
                   <td className="td"><Badge tone={low ? 'danger' : 'ok'}>{low ? t('inv.low') : t('inv.ok')}</Badge></td>
-                  <td className="td text-right"><button className="btn-ghost h-7 px-2" onClick={() => setQr(i)} aria-label={`${t('inv.qr')} ${i.sku}`}><QrCode {...ICON} /></button></td>
+                  <td className="td text-right"><button className="btn-ghost h-11 w-11 px-0 md:h-7 md:w-auto md:px-2" onClick={() => setQr(i)} aria-label={`${t('inv.qr')} ${i.sku}`}><QrCode {...ICON} /></button></td>
                 </tr>);
             })}</tbody>
           </table>)}

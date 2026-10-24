@@ -122,6 +122,8 @@ A second check through the full app API (`POST /api/sessions/:id/check`) succeed
 | ![Summary](docs/screenshots/session-summary.png) | ![Dashboard](docs/screenshots/dashboard.png) |
 | **Inventory** | **Settings** |
 | ![Inventory](docs/screenshots/inventory.png) | ![Settings](docs/screenshots/settings.png) |
+| **Mobile · Home** | **Mobile · Live Coach** |
+| <img src="docs/screenshots/mobile-home.png" width="280" alt="Mobile home" /> | <img src="docs/screenshots/mobile-live-coach.png" width="280" alt="Mobile Live Coach" /> |
 
 ---
 

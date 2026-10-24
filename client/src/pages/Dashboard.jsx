@@ -22,7 +22,7 @@ export default function Dashboard() {
   return (
     <div>
       <PageHeader title={t('dash.title')} subtitle={t('dash.subtitle')} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {[[Users, 'workers', d?.totals.workers], [Activity, 'sessions', d?.totals.sessions], [ShieldAlert, 'highRisk', d?.totals.highRisk], [Gauge, 'avgRisk', d?.totals.avgRisk]].map(([I, k, v]) => (
           <Card key={k} icon={I} title={t(`dash.${k}`)}>{q.isLoading ? <Skeleton className="h-8 w-16" /> : <><div className="text-xl font-medium tabular-nums tracking-tight">{v}</div>{k === 'avgRisk' && <div className="mt-3"><Meter value={v} ticks={20} label={t('dash.avgRisk')} /></div>}</>}</Card>
         ))}
@@ -34,7 +34,7 @@ export default function Dashboard() {
             <div className="h-56" data-testid="sessions-chart"><ResponsiveContainer>
               <BarChart data={d.chart} barCategoryGap="28%">
                 <CartesianGrid vertical={false} stroke="#ECE7E0" strokeDasharray="2 4" />
-                <XAxis dataKey="day" tickFormatter={(v) => fmtDate(v, t.lang)} tick={{ fontSize: 12, fill: '#9A908C' }} axisLine={false} tickLine={false} interval={1} />
+                <XAxis dataKey="day" tickFormatter={(v) => fmtDate(v, t.lang)} tick={{ fontSize: 12, fill: '#9A908C' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={8} />
                 <YAxis allowDecimals={false} width={24} tick={{ fontSize: 12, fill: '#9A908C' }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: '#F4F0EA' }} content={<ChartTip t={t} />} />
                 <Bar dataKey="live" stackId="a" fill="#1E1715" radius={[0, 0, 3, 3]} />

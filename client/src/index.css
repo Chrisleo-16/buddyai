@@ -5,21 +5,23 @@
 @layer base {
   html { -webkit-font-smoothing: antialiased; }
   body { @apply bg-paper text-ink font-sans text-base; font-feature-settings: 'cv11', 'ss01'; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
   :focus-visible { outline: 2px solid #2F7D6D; outline-offset: 2px; border-radius: 8px; }
 }
 @layer components {
-  .btn { @apply inline-flex h-8 items-center justify-center gap-2 rounded-btn px-3 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-lg { @apply h-10 px-4 text-base; }
+  .btn { @apply inline-flex h-11 md:h-8 items-center justify-center gap-2 rounded-btn px-3 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-lg { @apply h-12 md:h-10 px-4 text-base; }
   .btn-primary { @apply btn bg-ink text-paper hover:bg-ink-strong; }
   .btn-secondary { @apply btn border border-paper-line bg-paper-raised text-ink shadow-card hover:bg-paper-hover; }
   .btn-ghost { @apply btn text-ink-muted hover:bg-paper-hover hover:text-ink; }
   .btn-danger { @apply btn border border-danger/20 bg-danger-soft text-danger hover:bg-danger/10; }
-  .card { @apply rounded-card border border-paper-line bg-paper-sunken/60 p-1 shadow-card; }
+  .card { @apply min-w-0 rounded-card border border-paper-line bg-paper-sunken/60 p-1 shadow-card; }
   .card-head { @apply flex h-9 items-center gap-2 px-3 text-sm font-medium text-ink; }
   .card-body { @apply rounded-inner border border-paper-line bg-paper-raised p-4; }
   .label { @apply text-sm font-medium text-ink; }
   .muted { @apply text-ink-muted; }
-  .input { @apply h-9 w-full rounded-btn border border-paper-line bg-paper-raised px-3 text-base text-ink placeholder:text-ink-subtle transition focus:border-ink/30 focus:outline-none focus:ring-4 focus:ring-ink/5; }
+  .input { @apply h-11 md:h-9 w-full rounded-btn border border-paper-line bg-paper-raised px-3 text-base text-ink placeholder:text-ink-subtle transition focus:border-ink/30 focus:outline-none focus:ring-4 focus:ring-ink/5; }
   .badge { @apply inline-flex h-5 items-center gap-1 rounded-badge px-1.5 text-xs font-medium; }
   .badge-ok { @apply badge bg-ok-soft text-ok; }
   .badge-warn { @apply badge bg-warn-soft text-warn; }
@@ -27,5 +29,12 @@
   .badge-neutral { @apply badge bg-paper-sunken text-ink-muted; }
   .skeleton { @apply rounded-nav bg-[linear-gradient(90deg,#EFEAE3_0%,#F7F4EF_50%,#EFEAE3_100%)] bg-[length:200%_100%] animate-shimmer; }
   .th { @apply h-9 px-3 text-left text-sm font-normal text-ink-muted; }
-  .td { @apply h-11 border-t border-paper-line px-3 text-base; }
+  .td { @apply h-11 whitespace-nowrap border-t border-paper-line px-3 text-base; }
+}
+
+@layer utilities {
+  .pb-safe-nav { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+  .bottom-safe-nav { bottom: calc(4rem + env(safe-area-inset-bottom)); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  @media (min-width: 768px) { .pb-safe-nav { padding-bottom: 2.5rem; } .bottom-safe-nav { bottom: auto; } }
 }

@@ -160,7 +160,7 @@ export default function LiveCoach() {
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
           <Card icon={Camera} title={t('coach.camera')} bodyClass="p-0 overflow-hidden" action={checking ? <Badge tone="warn" icon={Loader2}>{elapsed}{t('common.seconds')}</Badge> : null}>
-            <div className="relative aspect-video bg-ink">
+            <div className="relative aspect-[4/3] w-full bg-ink sm:aspect-video">
               <video ref={cam.videoRef} muted playsInline className={`h-full w-full scale-x-[-1] object-cover ${cam.state === 'on' ? '' : 'opacity-0'}`} />
               {cam.state === 'starting' && <div className="absolute inset-0 grid place-items-center"><Loader2 size={20} strokeWidth={1.5} className="animate-spin text-paper/70" /></div>}
               {cam.state === 'error' && (
@@ -202,7 +202,8 @@ export default function LiveCoach() {
 
           <Card icon={ListChecks} title={t('coach.checklist')}><Checklist items={items} /></Card>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="h-28 md:hidden" aria-hidden />
+          <div className="fixed inset-x-0 bottom-safe-nav z-30 grid grid-cols-2 gap-2 border-t border-paper-line bg-paper px-4 py-2 md:static md:border-0 md:bg-transparent md:p-0">
             <button className="btn-secondary btn-lg" onClick={() => check(false)} disabled={checking || cam.state !== 'on'} data-testid="check-now"><ScanEye {...ICON} />{t('coach.checkNow')}</button>
             <button className="btn-secondary btn-lg" onClick={() => setIssueOpen(true)}><Flag {...ICON} />{t('coach.report')}</button>
             {verified ? (
