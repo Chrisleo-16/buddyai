@@ -12,11 +12,11 @@
 ![Gemma 4](https://img.shields.io/badge/Gemma_4-2F7D6D?style=flat-square&logo=google&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-offline_ready-2F7D6D?style=flat-square)
 ![License](https://img.shields.io/badge/license-Apache_2.0-B07A2A?style=flat-square)
-![Demo](https://img.shields.io/badge/demo-run_locally-lightgrey?style=flat-square)
+[![Live demo](https://img.shields.io/badge/demo-live-2E7D5B?style=flat-square)](https://buddyai-31ou.onrender.com)
 
-> **Live demo:** a public Hack Day URL could not be opened from the build machine (its network blocks Cloudflare tunnel traffic). Run it locally in one command (see Quick start) or deploy with [DEPLOY.md](DEPLOY.md). Demo logins: `worker@buddy.ai` / `buddy-demo-2026`, `supervisor@buddy.ai` / `buddy-demo-2026`.
+> **Live demo:** [buddyai-31ou.onrender.com](https://buddyai-31ou.onrender.com). It was hosted on Render for Hack Day (Oct 24, 2026) and may go offline afterwards. The free tier sleeps, so the first load can take about a minute. Demo logins: `worker@buddy.ai` / `buddy-demo-2026`, `supervisor@buddy.ai` / `buddy-demo-2026`.
 
-[Demo](#quick-start) · [Video](#) · [Pitch](PITCH.md) · [Docs](#how-it-works)
+[Live demo](https://buddyai-31ou.onrender.com) · [Video](#) · [Pitch](PITCH.md) · [Docs](#how-it-works)
 
 <img src="docs/screenshots/live-coach.png" width="860" alt="Live Coach screen" />
 
