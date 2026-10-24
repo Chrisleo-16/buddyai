@@ -1,0 +1,28 @@
+# Production overlay for a single Droplet:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Secrets (JWT_SECRET, GEMINI_API_KEY) go in ./.env on the server, never in git.
+services:
+  caddy:
+    image: caddy:2
+    environment:
+      DOMAIN: ${DOMAIN:-mlh.lenanalabs.tech}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [client]
+    restart: unless-stopped
+  server:
+    environment:
+      CLIENT_ORIGIN: https://${DOMAIN:-mlh.lenanalabs.tech}
+    ports: !reset []
+    restart: unless-stopped
+  client:
+    ports: !reset []
+    restart: unless-stopped
+  mongo:
+    restart: unless-stopped
+volumes:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,6 @@
+# HTTPS front door for the Droplet. Caddy gets a Let's Encrypt certificate
+# automatically; the client's nginx already routes /api and /socket.io.
+{$DOMAIN:mlh.lenanalabs.tech} {
+	encode gzip
+	reverse_proxy client:80
+}
