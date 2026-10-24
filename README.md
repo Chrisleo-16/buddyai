@@ -12,7 +12,9 @@
 ![Gemma 4](https://img.shields.io/badge/Gemma_4-2F7D6D?style=flat-square&logo=google&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-offline_ready-2F7D6D?style=flat-square)
 ![License](https://img.shields.io/badge/license-Apache_2.0-B07A2A?style=flat-square)
-![Demo](https://img.shields.io/badge/demo-coming_soon-lightgrey?style=flat-square)
+![Demo](https://img.shields.io/badge/demo-run_locally-lightgrey?style=flat-square)
+
+> **Live demo:** a public Hack Day URL could not be opened from the build machine (its network blocks Cloudflare tunnel traffic). Run it locally in one command (see Quick start) or deploy with [DEPLOY.md](DEPLOY.md). Demo logins: `worker@buddy.ai` / `buddy-demo-2026`, `supervisor@buddy.ai` / `buddy-demo-2026`.
 
 [Demo](#quick-start) · [Video](#) · [Pitch](PITCH.md) · [Docs](#how-it-works)
 
@@ -44,22 +46,46 @@ Doffing is when healthcare workers get infected. CDC guidance calls for a traine
 
 ## How it works
 
+**Gemma 4 is the core model behind every AI capability in BuddyAI.** Nothing else interprets frames or writes feedback; the risk score is a transparent rule set, and Gemma 4 turns it into the coaching note.
+
 ```mermaid
 flowchart LR
-  cam["Tablet camera<br/>frame every 5–8 s"] --> api["Express API<br/>multer memory only"]
-  api --> prov{"GEMMA_PROVIDER"}
-  prov -->|gemini| g["gemma-4-31b-it<br/>fallback gemma-4-26b-a4b-it"]
-  prov -->|ollama| o["Ollama gemma4<br/>local / Raspberry Pi"]
-  prov -->|mock| m["Deterministic mock"]
-  g & o & m --> z["zod-validated JSON<br/>1 re-ask on bad JSON"]
-  z --> sock["Socket.io<br/>buddy:feedback"]
-  sock --> ui["Live Coach<br/>EN/SW + voice"]
-  api --> db[("MongoDB<br/>metadata only")]
-  db --> dash["Supervisor dashboard"]
-  api -. "high risk" .-> sms["Africa's Talking SMS<br/>(optional, off)"]
+  cam["Camera frame<br/>(640px, in memory only)"] --> G
+  log["Session log<br/>detections + overrides + rule-based risk score"] --> G
+  train["Training session<br/>(same per-step checks)"] --> G
+  G(["<b>Gemma 4</b><br/>vision: gemma-4-26b-a4b-it<br/>fallback: gemma-4-31b-it"])
+  G --> v1["PPE item checks<br/>present / correct / issue"]
+  G --> v2["Step verdict step_ok<br/>+ risk flags"]
+  G --> v3["Feedback EN + Kiswahili<br/>(spoken by the UI)"]
+  G --> c1["Risk explanation +<br/>coaching note EN/SW"]
+  G --> t1["Training feedback<br/>(score = 100 - risk)"]
+  sw{"GEMMA_PROVIDER switch"} -.-> G
+  sw -->|gemini| gem["Gemini API<br/>hosted Gemma 4"]
+  sw -->|ollama| oll["Ollama gemma4<br/>local, offline, same open weights"]
+  v1 & v2 & v3 --> sock["zod-validated JSON -> Socket.io -> Live Coach"]
+  c1 & t1 --> db[("MongoDB<br/>metadata only")] --> dash["Supervisor dashboard"]
 ```
 
-Gemma returns a fixed shape for each check: `{ items:[{name,present,correct,issue,confidence}], step_ok, feedback_en, feedback_sw, risk_flags }`. Every call has a timeout (75 s by default), retry with exponential backoff on 408/429/5xx, model fallback and per-call timing. While a call runs, the UI shows *Buddy is checking…*, and you can always continue by hand with a logged override.
+### Why Gemma 4
+
+- **Open weights, Apache 2.0**: the same model runs offline on hospital hardware through Ollama, with no frames leaving the ward.
+- **Multimodal in one model**: vision and language together, so a single call both inspects the PPE in the frame and writes the guidance.
+- **Bilingual output**: every check and coaching note comes back in English and Kiswahili (`feedback_en` / `feedback_sw`, `coaching_en` / `coaching_sw`).
+- **Structured JSON**: Gemma returns a fixed schema that is validated with zod (one re-ask on bad JSON), so the app can enforce the protocol: you cannot advance until `step_ok` is true or you log an override.
+
+### Every AI feature and the Gemma 4 call behind it
+
+| Feature | Gemma 4 call (server/src/services/gemma.js) | Model |
+|---|---|---|
+| Live PPE item checks (present / correct / issue) | `checkFrame()` via `POST /api/sessions/:id/check` | `gemma-4-26b-a4b-it`, fallback `gemma-4-31b-it` (Ollama: `gemma4`) |
+| Step verdict (`step_ok`) and risk flags | `checkFrame()` (same call) | same as above |
+| EN + Kiswahili spoken feedback | `checkFrame()` (`feedback_en`, `feedback_sw`) | same as above |
+| Risk explanation and coaching note | `coachingNote()` at session finish | `gemma-4-26b-a4b-it`, fallback `gemma-4-31b-it` (Ollama: `gemma4`) |
+| Training mode feedback | `checkFrame()` per step + `coachingNote()`; score = 100 - rule-based risk | same as above |
+
+Demo mode (toggle in Settings) swaps in clearly labelled scripted responses (`provider: "demo"`) for a flaky network; it never pretends to be Gemma.
+
+Gemma returns a fixed shape for each check: `{ items:[{name,present,correct,issue,confidence}], step_ok, feedback_en, feedback_sw, risk_flags }`. Every call has a timeout (45 s by default), retry with exponential backoff on 408/429/5xx, model fallback and per-call timing. While a call runs, the UI shows *Buddy is checking…*, and you can always continue by hand with a logged override.
 
 **Real Gemma 4 result.** We sent one call to the Gemini API with a [Wikimedia Commons Ebola PPE photo](https://commons.wikimedia.org/wiki/File:Checking_Personal_Protective_Equipment_(PPE)_in_the_fight_against_Ebola_(15650272810).jpg) (CC BY 2.0, DFID):
 - `gemma-4-31b-it` returned a 500, so the call fell back to `gemma-4-26b-a4b-it`. The total was **62.7 s over 4 attempts**.
@@ -81,8 +107,8 @@ A second check through the full app API (`POST /api/sessions/:id/check`) succeed
 ### Models
 
 [Gemma 4](https://opensource.googleblog.com/2026/03/gemma-4-expanding-the-gemmaverse-with-apache-20.html) is released under **Apache 2.0**:
-- Vision: `gemma-4-31b-it`
-- Text and coaching: `gemma-4-26b-a4b-it`
+- Vision (live checks): `gemma-4-26b-a4b-it`, fallback `gemma-4-31b-it`
+- Text and coaching: `gemma-4-26b-a4b-it`, fallback `gemma-4-31b-it`
 - Local: `gemma4` (e4b) on Ollama
 
 ---
