@@ -1,0 +1,22 @@
+services:
+  mongo:
+    image: mongo:7
+    volumes: [mongo-data:/data/db]
+  server:
+    build: ./server
+    environment:
+      MONGO_URI: mongodb://mongo:27017/buddyai
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      GEMMA_PROVIDER: ${GEMMA_PROVIDER:-mock}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on: [mongo]
+    ports: ["4000:4000"]
+  client:
+    build: ./client
+    depends_on: [server]
+    ports: ["8080:80"]
+volumes:
+  mongo-data:
