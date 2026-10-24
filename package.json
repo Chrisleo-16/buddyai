@@ -1,0 +1,20 @@
+{
+  "name": "buddyai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI buddy observer for Ebola PPE donning & doffing — Gemma 4, MERN, EN/Kiswahili PWA",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm:dev -w server\" \"npm:dev -w client\"",
+    "build": "npm run build -w client",
+    "test": "npm test -w server && npm test -w client",
+    "seed": "npm run seed -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}
