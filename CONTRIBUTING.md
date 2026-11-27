@@ -25,7 +25,7 @@ The current application includes:
   mock provider for local development and tests.
 - Session risk scoring, coaching summaries, inventory tracking, QR labels, and
   optional Africa's Talking SMS alerts.
-- MongoDB persistence when `MONGO_URI` is configured, with an
+- MongoDB persistence when `MONGO_URI` is configured, with a
   `mongodb-memory-server` fallback for zero-setup development.
 - Automated server and client tests run with Vitest.
 
