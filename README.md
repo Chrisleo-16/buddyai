@@ -16,7 +16,7 @@
 
 > **Live demo:** [buddyai-31ou.onrender.com](https://buddyai-31ou.onrender.com). It was hosted on Render for Hack Day (Oct 24, 2026) and may go offline afterwards. The free tier sleeps, so the first load can take about a minute. Demo logins: `worker@buddy.ai` / `buddy-demo-2026`, `supervisor@buddy.ai` / `buddy-demo-2026`.
 
-[Live demo](https://buddyai-31ou.onrender.com) · [Video](#) · [Pitch](PITCH.md) · [Docs](#how-it-works)
+[Live demo](https://buddyai-31ou.onrender.com) · [Pitch](PITCH.md) · [Docs](#how-it-works)
 
 <img src="docs/screenshots/live-coach.png" width="860" alt="Live Coach screen" />
 
