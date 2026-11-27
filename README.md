@@ -219,7 +219,7 @@ The steps are taken from CDC guidance. No steps were invented, and every step li
 ## Contributing
 
 Pull requests are welcome, especially Hacktoberfest ones. See
-[CONTRIBUTIONS.md](CONTRIBUTIONS.md) for the development setup, testing
+[CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, testing
 commands, contribution workflow, and project roadmap. Good first issues:
 - More languages (Luganda, French, Lingala)
 - New protocol variants, with a source URL for every step
