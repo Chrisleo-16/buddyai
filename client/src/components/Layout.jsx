@@ -30,7 +30,7 @@ export default function Layout() {
           <span className="grid h-7 w-7 place-items-center rounded-nav bg-ink text-paper"><ShieldCheck size={16} strokeWidth={1.5} /></span>
           <span className="text-md font-medium">BuddyAI</span>
         </div>
-        <nav className="flex flex-col gap-1" aria-label="Main">
+        <nav className="flex flex-col gap-1" aria-label={t('nav.mainNav')}>
           <p className="px-2 pb-1 text-xs text-ink-subtle">{t('nav.workspace')}</p>
           <Item to="/" icon={House} label={t('nav.home')} />
           <Item to="/training" icon={GraduationCap} label={t('nav.training')} />
@@ -59,7 +59,7 @@ export default function Layout() {
         </div>
       </header>
       <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 pb-safe-nav pt-6 md:px-10 md:py-10"><Outlet /></main>
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-paper-line bg-paper-raised/95 px-1 pt-1 pb-safe md:hidden" aria-label="Main mobile">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-paper-line bg-paper-raised/95 px-1 pt-1 pb-safe md:hidden" aria-label={t('nav.mobileNav')}>
         <div className="flex w-full pb-1">
           <Item mobile to="/" icon={House} label={t('nav.home')} />
           <Item mobile to="/training" icon={GraduationCap} label={t('nav.training')} />
