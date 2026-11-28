@@ -9,6 +9,16 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me}
       GEMMA_PROVIDER: ${GEMMA_PROVIDER:-mock}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-*}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      DEMO_LATENCY_MS: ${DEMO_LATENCY_MS:-1500}
+      GEMMA_VISION_MODEL: ${GEMMA_VISION_MODEL:-gemma-4-26b-a4b-it}
+      GEMMA_FALLBACK_VISION_MODEL: ${GEMMA_FALLBACK_VISION_MODEL:-gemma-4-31b-it}
+      GEMMA_TEXT_MODEL: ${GEMMA_TEXT_MODEL:-gemma-4-31b-it}
+      GEMMA_LIVE_THINKING: ${GEMMA_LIVE_THINKING:-minimal}
+      GEMMA_LIVE_MAX_TOKENS: ${GEMMA_LIVE_MAX_TOKENS:-320}
+      GEMMA_TIMEOUT_MS: ${GEMMA_TIMEOUT_MS:-45000}
+      GEMMA_RETRIES: ${GEMMA_RETRIES:-1}
       OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4}
     extra_hosts: ["host.docker.internal:host-gateway"]
